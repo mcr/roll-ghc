@@ -29,16 +29,21 @@ int ghc_compress(unsigned char *inbuf, unsigned char *outbuf, int inlen)
 
         /* set the instruction */
         insts[instno] = outp;
-        outp++;
 
-        /* now copy up to two consecutive 0s */
-        while(cnt < klen && (inp[0]!=0 || inp[1]!=0)) {
-            *outp++ = *inp++;
+        /* now copy until we detect something we can do better */
+        while(cnt < klen
+              && (inp[0]!=0 || inp[1]!=0)    /* zero compression */
+              && (outp <= outbuf+1 || inp[0]!=outp[-1] || inp[1] != outp[0])
+            ) {
+            *++outp = *inp++;
             cnt++;
         }
-        (*insts[instno])  = cnt;
-        inlen -= cnt;
-        instno++;
+        if(cnt > 0) {
+            outp++;
+            (*insts[instno])  = cnt;
+            inlen -= cnt;
+            instno++;
+        }
 
         /* how many zeros can we eat? */
         if(inp[0] == 0 && inp[1]==0) {
@@ -49,6 +54,21 @@ int ghc_compress(unsigned char *inbuf, unsigned char *outbuf, int inlen)
             *(insts[instno]) = 0x80 + cnt;
             instno++;
             inlen -= cnt+2;
+        }
+
+        /* how many previous 2-character patterns can we repeat? */
+        if(outp > outbuf+1) {
+            unsigned char prev2 = outp[-2];
+            unsigned char prev1 = outp[-1];
+            while(inp[0] == prev2 && inp[1]== prev1) {
+                cnt=0;
+                inp += 2;
+
+                insts[instno]    = outp++;
+                *(insts[instno]) = 0xc0;   /* append previous 2 bytes */
+                instno++;
+                inlen -= cnt+2;
+            }
         }
     } while(inlen > 0);
 
