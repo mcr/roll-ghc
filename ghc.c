@@ -3,6 +3,8 @@
  * compresses it with ghc, and writes the result to
  * argv[2] file.
  *
+ * instead, should read/write pcap files, maybe add 6lowpan too
+ *
  */
 
 #include <stdio.h>
@@ -11,27 +13,44 @@
 
 int ghc_compress(unsigned char *inbuf, unsigned char *outbuf, int inlen)
 {
-    unsigned char *insts[128];
+    unsigned char *(insts[128]);              /* 128 pointers to char * */
     int i;
     int instno = 0;
     unsigned char *outp = outbuf;
     unsigned char *inp  = inbuf;
+    memset(insts, 0, sizeof(insts));
 
-    i = inlen;
     do {
-        int klen = i;
+        int klen = inlen;
+        int cnt;
         if(klen > 95) klen = 95;
 
-        /* set the instruction */
-        *outp         = klen;
-        insts[instno] = outp + 1;
-        memcpy(insts[instno], inp, klen);
+        cnt = 0;
 
-        i   -= klen;
-        inp += klen;
-        outp += klen+1;
+        /* set the instruction */
+        insts[instno] = outp;
+        outp++;
+
+        /* now copy up to two consecutive 0s */
+        while(cnt < klen && (inp[0]!=0 || inp[1]!=0)) {
+            *outp++ = *inp++;
+            cnt++;
+        }
+        (*insts[instno])  = cnt;
+        inlen -= cnt;
         instno++;
-    } while(i > 0);
+
+        /* how many zeros can we eat? */
+        if(inp[0] == 0 && inp[1]==0) {
+            cnt=0;
+            inp++;
+            while(*++inp == 0 && cnt < 16) cnt++;
+            insts[instno] = outp++;
+            *(insts[instno]) = 0x80 + cnt;
+            instno++;
+            inlen -= cnt+2;
+        }
+    } while(inlen > 0);
 
     return outp - outbuf;
 }
