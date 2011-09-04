@@ -5,6 +5,10 @@
  *
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 int ghc_compress(unsigned char *inbuf, unsigned char *outbuf, int inlen)
 {
     unsigned char *insts[128];
@@ -18,15 +22,16 @@ int ghc_compress(unsigned char *inbuf, unsigned char *outbuf, int inlen)
         int klen = i;
         if(klen > 95) klen = 95;
 
+        /* set the instruction */
+        *outp         = klen;
         insts[instno] = outp + 1;
-        (*insts[0])[0] = klen;
-        memcpy(inst[instno], inp, klen);
+        memcpy(insts[instno], inp, klen);
 
         i   -= klen;
         inp += klen;
         outp += klen+1;
         instno++;
-    } while(i > 95);
+    } while(i > 0);
 
     return outp - outbuf;
 }
@@ -37,7 +42,7 @@ void main(int argc, char *argv[])
     FILE *in, *out;
     unsigned char  packbuf[2048];
     unsigned char  outbuf[2048];
-    int inlen;
+    int inlen, outlen;
 
     if(argc != 3 || argv[1]==NULL || argv[2]==NULL) {
         fprintf(stderr, "Usage: ghc in out\n");
@@ -55,8 +60,8 @@ void main(int argc, char *argv[])
         exit(7);
     }
 
-    inlen = fread(packetbuf, 1, 2048, in);
-    outlen = ghc_compress(packetbuf, outbuf, inlen);
+    inlen = fread(packbuf, 1, 2048, in);
+    outlen = ghc_compress(packbuf, outbuf, inlen);
     fwrite(outbuf, 1, outlen, out);
     fclose(in);
     fclose(out);
