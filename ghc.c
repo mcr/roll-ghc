@@ -84,6 +84,9 @@ void main(int argc, char *argv[])
     fwrite(outbuf, 1, outlen, out);
     fclose(in);
     fclose(out);
+
+    fprintf(stderr, "Input %u Output %u ratio=%u%%",
+            inlen, outlen, inlen * 100 / outlen);
 }
 
 /*
