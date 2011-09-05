@@ -1,0 +1,94 @@
+ORIGINAL PACKET:
+
+00000000: 9b01 7a5f 
+
+DIO base            8000 0007 0000 0000 0000 0000  ..z_........ ...
+00000010: 0000 0000 0000 0000 0000 face            
+
+DODAG cfg option                        040e 0014  ................
+00000020: 030a 0000 0100 0000 0000 0000 
+
+ROUTE INFO                              0316 4000  ............... 
+00000030: 0001 5180 2001 4830 16ca 0001 0000 0000  ............ ...
+00000040: 0000 0000 
+
+METRIC              020c 
+metric 1                 0700 6002 0102 
+constraint 2                            0402 6002 1000 
+
+summary:
+00000000: 9b01 7a5f 8000 0007 0000 0000 0000 0000 
+00000010: 0000 0000 0000 0000 0000 face 040e 0014 
+00000020: 030a 0000 0100 0000 0000 0000 0316 4000
+00000030: 0001 5180 2001 4830 16ca 0001 0000 0000
+00000040: 0000 0000 020c 0700 6002 0102 0402 6002
+00000050: 1000 
+
+
+
+DIO Base 4 bytes base object, 2 header, 2 bytes for DODAGID.
+    must be:
+         C=0           - no context.
+         I=0           - use context?
+         L=1           - implicit value 128.
+         V=0           - implicit value 0.
+         R=1           - 4-bit rank.
+         G=0           - Ground value=0, MOP=0 (non-storing), Pref=0.
+         T=0           - DTSN field (HOW CAN THIS BE OMITTED?)
+         F=0           - no flags, no reserved.
+         Ra=0x7        - Rank value.
+         Compr=14      - 2 bytes DODAGID.
+         DODAGID       - 0xfa 0xce
+
+ results in:
+   0x28 0x7e 0xfa 0xce
+
+DODAG cfg option, 2+1.
+      F = 0             - flags, A and PCS fields are zero.
+      T1= 0             - DIOIntervalDoublings - default value. (from rpl-19)
+      T2= 0             - DIORedundancyConstant- default value. (from rpl-19)
+      I1= 0             - MaxRankIncrease. default value
+      I2= 0             - MinHopRankInc. default value
+      O = 0             - RPL Object Function 0 used.
+      R = 0             - no reserved field.
+      L = 0             - Default Lifetime is elided.
+
+ results in:
+   0x84 0x03 0x00
+
+ROUTE INFO, 24 bytes.
+ results in:
+   0x03 0x16 0x40 0x00
+   0x00 0x01 0x51 0x80  <- lifetime, 86400s value.
+   0x20 0x01 0x48 0x30    2001:4830:16ca:1::/64
+   0x16 0xca 0x00 0x01
+   0x00 0x00 0x00 0x00  <- should be omitted.
+   0x00 0x00 0x00 0x00
+
+METRIC 8 bytes, 2+3+3.
+ 0x82 0x06      header.
+ object1: T=5   ETX Object
+          C=0   metric
+          P1/P2=00  highest precedence
+          A=0x03    multiplicative
+  data: 0xa3 0x01 0x02
+
+ object2: T=3   throughput (made up)
+          C=1   constraint          
+          O=1   optional
+          P2/A=0
+  data: 0x60 0x10 0x00  (1 kib/s)
+
+RESULTING PACKET
+
+00000000: 9b01 7a5f                     ICMP
+00000004: 287e face                     DIO Base
+00000008: 8403 00                       DODAG cfg
+0000000b: 0316 4000 0001 5180 2001 4830 16ca 0001  ROUTE INFO (2001:4830:16ca:1::/64)
+0000001b: 0000 0000 0000 0000  METRIC
+00000023: 8206 a301 0260 1000
+
+
+
+
+
